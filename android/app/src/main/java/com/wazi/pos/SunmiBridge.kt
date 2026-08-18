@@ -10,8 +10,7 @@ class SunmiBridge(private val printer: SunmiPrinterManager) {
 
     @JavascriptInterface
     fun getStatus(): String {
-        val code = printer.printerStatus()
-        return when (code) {
+        return when (printer.printerStatus()) {
             1 -> "RUNNING"
             2 -> "INITIALIZING"
             3 -> "HARDWARE_ERROR"
@@ -32,7 +31,6 @@ class SunmiBridge(private val printer: SunmiPrinterManager) {
     fun printReceipt(receiptJson: String): Boolean {
         return try {
             val r = JSONObject(receiptJson)
-
             printer.printReceipt(
                 businessName = r.optString("businessName", "WAZI POS"),
                 receiptNumber = r.optString("receiptNumber"),

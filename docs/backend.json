@@ -1,0 +1,37 @@
+
+{
+  "entities": {
+    "Receipt": {
+      "title": "Receipt",
+      "description": "A government bill or receipt issued by the POS system.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "billItem": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "numPeople": { "type": "number" },
+        "amount": { "type": "number" },
+        "paymentOption": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "controlNumber": { "type": "string" },
+        "posCenterName": { "type": "string" },
+        "printedBy": { "type": "string" },
+        "printedAt": { "type": "string" },
+        "notes": { "type": "string" },
+        "visitorType": { "type": "string" },
+        "transactionId": { "type": "string" }
+      },
+      "required": ["customerName", "controlNumber", "amount"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/receipts/{receiptId}": {
+      "schema": "Receipt",
+      "description": "Collection of all generated receipts."
+    }
+  }
+}

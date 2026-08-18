@@ -1,0 +1,70 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 120 10% 98%;
+    --foreground: 147 27% 19%;
+    --card: 0 0% 100%;
+    --card-foreground: 147 27% 19%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 147 27% 19%;
+    --primary: 147 27% 19%;
+    --primary-foreground: 120 10% 98%;
+    --secondary: 144 14% 50%;
+    --secondary-foreground: 147 27% 19%;
+    --muted: 144 14% 90%;
+    --muted-foreground: 144 14% 30%;
+    --accent: 144 14% 50%;
+    --accent-foreground: 120 10% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 144 14% 85%;
+    --input: 144 14% 85%;
+    --ring: 147 27% 19%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  
+  #thermal-receipt-print-area, #thermal-receipt-print-area * {
+    visibility: visible !important;
+  }
+  
+  #thermal-receipt-print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  
+  [data-paper-size="58mm"] {
+    width: 58mm !important;
+  }
+  [data-paper-size="80mm"] {
+    width: 80mm !important;
+  }
+
+  @page {
+    margin: 0;
+  }
+}

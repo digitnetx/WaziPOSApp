@@ -3,6 +3,8 @@ package com.wazi.pos
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
+import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -17,6 +19,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val APP_URL = "https://wazi-pos.vercel.app"
         private const val BRIDGE_NAME = "Sunmi"
+        private const val TAG = "WaziPOSWebView"
     }
 
     private lateinit var webView: WebView
@@ -43,22 +46,37 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun configureWebView() {
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.databaseEnabled = true
-        webView.settings.loadsImagesAutomatically = true
-        webView.settings.allowFileAccess = false
-        webView.settings.allowContentAccess = false
-        webView.settings.mediaPlaybackRequiresUserGesture = false
-        webView.settings.setSupportZoom(false)
-        webView.settings.builtInZoomControls = false
-        webView.settings.displayZoomControls = false
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            databaseEnabled = true
+            loadsImagesAutomatically = true
+            allowFileAccess = false
+            allowContentAccess = false
+            mediaPlaybackRequiresUserGesture = false
+            setSupportZoom(false)
+            builtInZoomControls = false
+            displayZoomControls = false
+            // The WaziPOS site is HTTPS. Keep normal web security while allowing
+            // all modern browser APIs used by Next.js and Supabase.
+            javaScriptCanOpenWindowsAutomatically = false
+            setSupportMultipleWindows(false)
+        }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
             WebSettingsCompat.setForceDark(webView.settings, WebSettingsCompat.FORCE_DARK_OFF)
         }
 
-        webView.webChromeClient = WebChromeClient()
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                Log.d(
+                    TAG,
+                    "JS ${consoleMessage.messageLevel()}: ${consoleMessage.message()} @ ${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}"
+                )
+                return true
+            }
+        }
+
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView,
@@ -73,6 +91,23 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     Toast.makeText(this@MainActivity, "Blocked external navigation", Toast.LENGTH_SHORT).show()
                     true
+                }
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                val host = android.net.Uri.parse(url).host ?: return true
+                return host == "wazi-pos.vercel.app" || host.endsWith(".vercel.app")
+            }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: android.webkit.WebResourceError
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request.isForMainFrame) {
+                    Log.e(TAG, "WebView error ${error.errorCode}: ${error.description} URL=${request.url}")
                 }
             }
         }

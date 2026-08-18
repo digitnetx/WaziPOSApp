@@ -20,10 +20,7 @@ class SunmiPrinterManager(private val context: Context) {
         override fun onConnected(service: SunmiPrinterService) {
             this@SunmiPrinterManager.service = service
             connected = true
-            try {
-                service.printerInit(null)
-            } catch (_: RemoteException) {
-            }
+            try { service.printerInit(null) } catch (_: RemoteException) { }
         }
 
         override fun onDisconnected() {
@@ -33,8 +30,9 @@ class SunmiPrinterManager(private val context: Context) {
     }
 
     fun connect(): Boolean {
+        if (connected) return true
         return try {
-            InnerPrinterManager.getInstance().bindService(context, callback)
+            InnerPrinterManager.getInstance().bindService(context.applicationContext, callback)
         } catch (_: InnerPrinterException) {
             connected = false
             false
@@ -43,7 +41,7 @@ class SunmiPrinterManager(private val context: Context) {
 
     fun disconnect() {
         try {
-            InnerPrinterManager.getInstance().unBindService(context, callback)
+            InnerPrinterManager.getInstance().unBindService(context.applicationContext, callback)
         } catch (_: InnerPrinterException) {
         } finally {
             service = null
@@ -53,11 +51,7 @@ class SunmiPrinterManager(private val context: Context) {
 
     fun printerStatus(): Int {
         val s = service ?: return 505
-        return try {
-            s.updatePrinterState()
-        } catch (_: RemoteException) {
-            505
-        }
+        return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
     fun printReceipt(
@@ -84,38 +78,42 @@ class SunmiPrinterManager(private val context: Context) {
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.printText("Ministry of Blue Economy and Fisheries\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            s.printText("Government Bill\n\n", null)
+            s.printText("GOVERNMENT BILL\n\n", null)
 
             s.setAlignment(0, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
-            s.printText("BillItem : ${billItem.trim()}\n", null)
+            printLine(s, "BillItem", billItem)
+            printLine(s, "(TZS)", "")
+            printLine(s, "Payer name", payerName)
+            printLine(s, "Payer phone", payerPhone)
+            printLine(s, "Amount", amount)
+            printLine(s, "Pay option", paymentOption)
+            printLine(s, "Expire Date", expiryDate)
+
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            s.printText("(TZS)\n", null)
+            printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
-            s.printText("Payer name : $payerName\n", null)
-            s.printText("Payer phone : $payerPhone\n", null)
-            s.printText("Amount : $amount\n", null)
-            s.printText("Pay option : $paymentOption\n", null)
-            s.printText("Expire Date : $expiryDate\n", null)
-            s.printText("ControlNumber : $controlNumber\n", null)
 
             s.printText(
-                "Lipa kupitia Benki (NMB/BOT/PBZ) na\n" +
+                "\nLipa kupitia Benki (NMB/BOT/PBZ) na\n" +
                 "Mawakala wake au Mitandao ya Simu\n" +
                 "(kwa kuchagua \"Malipo ya Serikali\")\n" +
-                "Piga namba 0777350786 kwa maelezo\n" +
-                "Zaidi.\n\n",
+                "Piga namba 0777350786 kwa maelezo Zaidi.\n\n",
                 null
             )
 
-            s.printText("POS center : $posCenter\n", null)
-            s.printText("Printed on : $printedOn\n", null)
-            s.printText("Printed By : $printedBy\n", null)
+            printLine(s, "POS center", posCenter)
+            printLine(s, "Printed on", printedOn)
+            printLine(s, "Printed By", printedBy)
             s.lineWrap(4, null)
             true
         } catch (_: RemoteException) {
             false
         }
+    }
+
+    private fun printLine(service: SunmiPrinterService, label: String, value: String) {
+        service.printText("$label : $value\n", null)
     }
 
     fun printTest(): Boolean {

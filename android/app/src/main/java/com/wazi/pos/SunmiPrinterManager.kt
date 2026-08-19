@@ -54,6 +54,11 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
+    /**
+     * Compact government-bill print layout matching the supplied short 58mm
+     * reference. The receipt is intentionally text-only so it stays crisp on
+     * the built-in SUNMI thermal printer.
+     */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -72,23 +77,24 @@ class SunmiPrinterManager(private val context: Context) {
 
         return try {
             s.printerInit(null)
+
+            // Small thermal font and tight spacing reproduce the short reference.
+            s.setFontSize(20f, null)
             s.setAlignment(1, null)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            s.printText("${businessName.trim()}\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.printText("Ministry of Blue Economy and Fisheries\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            s.printText("GOVERNMENT BILL\n\n", null)
+            s.printText("Government Bill\n", null)
+            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
             s.setAlignment(0, null)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             printLine(s, "BillItem", billItem)
-            printLine(s, "(TZS)", "")
+            s.printText("(TZS)\n", null)
             printLine(s, "Payer name", payerName)
             printLine(s, "Payer phone", payerPhone)
             printLine(s, "Amount", amount)
             printLine(s, "Pay option", paymentOption)
-            printLine(s, "Expire Date", expiryDate)
+            printLine(s, "Expire Date", compactExpiry(expiryDate))
 
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             printLine(s, "ControlNumber", controlNumber)
@@ -98,14 +104,14 @@ class SunmiPrinterManager(private val context: Context) {
                 "\nLipa kupitia Benki (NMB/BOT/PBZ) na\n" +
                 "Mawakala wake au Mitandao ya Simu\n" +
                 "(kwa kuchagua \"Malipo ya Serikali\")\n" +
-                "Piga namba 0777350786 kwa maelezo Zaidi.\n\n",
+                "Piga namba 0777350786 kwa maelezo Zaidi.\n",
                 null
             )
 
             printLine(s, "POS center", posCenter)
             printLine(s, "Printed on", printedOn)
             printLine(s, "Printed By", printedBy)
-            s.lineWrap(4, null)
+            s.lineWrap(3, null)
             true
         } catch (_: RemoteException) {
             false
@@ -116,16 +122,23 @@ class SunmiPrinterManager(private val context: Context) {
         service.printText("$label : $value\n", null)
     }
 
+    private fun compactExpiry(value: String): String {
+        val parts = value.trim().split(Regex("\\s+"))
+        if (parts.size < 2) return value.trim()
+        return parts[0] + " " + parts[1].replace(":", "")
+    }
+
     fun printTest(): Boolean {
         val s = service ?: return false
         return try {
             s.printerInit(null)
+            s.setFontSize(20f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("WAZI POS\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.printText("SUNMI V2S TEST PRINT\n\n", null)
-            s.lineWrap(4, null)
+            s.lineWrap(3, null)
             true
         } catch (_: RemoteException) {
             false

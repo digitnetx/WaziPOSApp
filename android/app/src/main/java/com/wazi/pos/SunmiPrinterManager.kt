@@ -55,9 +55,9 @@ class SunmiPrinterManager(private val context: Context) {
     }
 
     /**
-     * Compact government-bill print layout matching the supplied short 58mm
-     * reference. The receipt is intentionally text-only so it stays crisp on
-     * the built-in SUNMI thermal printer.
+     * 58mm government-bill layout tuned from the supplied original print.
+     * Keep this text-only: SUNMI's built-in printer font is the closest match
+     * to the original government receipt's thermal bitmap/typewriter glyphs.
      */
     fun printReceipt(
         businessName: String,
@@ -78,11 +78,13 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // Small thermal font and tight spacing reproduce the short reference.
-            s.setFontSize(20f, null)
+            // 16f is intentionally smaller than the previous 20f. It matches
+            // the compact body text and line density of the supplied original.
+            s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.printText("Ministry of Blue Economy and Fisheries\n", null)
+
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("Government Bill\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
@@ -111,7 +113,9 @@ class SunmiPrinterManager(private val context: Context) {
             printLine(s, "POS center", posCenter)
             printLine(s, "Printed on", printedOn)
             printLine(s, "Printed By", printedBy)
-            s.lineWrap(3, null)
+
+            // The original receipt ends shortly after Printed By.
+            s.lineWrap(2, null)
             true
         } catch (_: RemoteException) {
             false
@@ -132,13 +136,13 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-            s.setFontSize(20f, null)
+            s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("WAZI POS\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.printText("SUNMI V2S TEST PRINT\n\n", null)
-            s.lineWrap(3, null)
+            s.lineWrap(2, null)
             true
         } catch (_: RemoteException) {
             false

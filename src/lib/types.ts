@@ -2,6 +2,7 @@
 export type VisitorType = 'International Tourist' | 'Local Resident' | 'School Group' | 'EAC Resident';
 
 export type PaymentOption = 'Exact' | 'Partial';
+export type Currency = 'TZS' | 'USD';
 
 export interface Receipt {
   id: string;
@@ -10,6 +11,7 @@ export interface Receipt {
   customerPhone: string;
   numPeople: number;
   amount: number;
+  currency: Currency;
   paymentOption: PaymentOption;
   expiryDate: string;
   controlNumber: string;

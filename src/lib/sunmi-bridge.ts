@@ -13,13 +13,6 @@ declare global {
   }
 }
 
-function formatTzs(amount: number) {
-  return `TZS ${new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)}`;
-}
-
 export function isSunmiApp() {
   return typeof window !== "undefined" && !!window.Sunmi;
 }
@@ -34,7 +27,9 @@ export function printReceiptOnSunmi(receipt: Receipt) {
       ...receipt,
       businessName: "WAZI POS",
       receiptNumber: receipt.controlNumber,
-      amount: formatTzs(receipt.amount),
+      // Keep the numeric amount unchanged. The native printer applies the
+      // selected TZS/USD currency so USD is never incorrectly printed as TZS.
+      amount: String(receipt.amount),
     })
   );
 }

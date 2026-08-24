@@ -43,7 +43,8 @@ class SunmiBridge(private val printer: SunmiPrinterManager) {
                 controlNumber = r.optString("controlNumber"),
                 posCenter = r.optString("posCenterName"),
                 printedOn = r.optString("printedAt"),
-                printedBy = r.optString("printedBy")
+                printedBy = r.optString("printedBy"),
+                currency = r.optString("currency", "TZS")
             )
         } catch (_: Exception) {
             false

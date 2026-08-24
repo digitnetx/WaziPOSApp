@@ -42,7 +42,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government-bill layout matched to the supplied original receipt. */
+    /** 58mm government-bill layout matched closely to the supplied original receipt. */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -62,15 +62,16 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // The original receipt is a simple 58mm thermal print. Keep the
-            // font plain and compact so long government text fits naturally.
-            s.setFontSize(14f, null)
+            // The original 58mm receipt uses a compact regular thermal font.
+            // Font size 12 keeps BillItem and the long government text readable
+            // while preventing the first body line from wrapping unnecessarily.
+            s.setFontSize(12f, null)
             s.setAlignment(1, null)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
+            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("Ministry of Blue Economy and Fisheries\n", null)
 
-            // Deliberate vertical gap between ministry name and Government Bill.
-            s.printText("\n", null)
+            // Clear vertical separation before Government Bill.
+            s.printText("\n\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("Government Bill\n", null)
             s.printText("\n\n", null)
@@ -79,8 +80,8 @@ class SunmiPrinterManager(private val context: Context) {
             s.setAlignment(0, null)
             printLine(s, "BillItem", billItem)
             s.printText("($currency)\n", null)
-            s.printText("\n", null)
 
+            s.printText("\n", null)
             printLine(s, "Payer name", payerName)
             printLine(s, "Payer phone", payerPhone)
             printLine(s, "Amount", "$currency $amount")
@@ -91,11 +92,11 @@ class SunmiPrinterManager(private val context: Context) {
             printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
+            // Keep the original wording and compact two-line visual flow.
             s.printText(
-                "\nLipa kupitia Benki (NMB/BOT/PBZ) na\n" +
-                "Mawakala wake au Mitandao ya Simu\n" +
+                "\nLipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu\n" +
                 "(kwa kuchagua \"Malipo ya Serikali\")\n" +
-                "Piga namba 0777350786 kwa maelezo Zaidi.\n\n",
+                "Piga namba 0778782798 kwa maelezo zaidi.\n\n",
                 null
             )
 
@@ -121,7 +122,7 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-            s.setFontSize(14f, null)
+            s.setFontSize(12f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("WAZI POS\n", null)

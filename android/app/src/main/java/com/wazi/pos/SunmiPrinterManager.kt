@@ -42,7 +42,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government-bill layout tuned to the supplied original receipt. */
+    /** 58mm government-bill layout matched to the supplied original receipt. */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -61,35 +61,44 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-            s.setFontSize(16f, null)
+
+            // The original receipt is a simple 58mm thermal print. Keep the
+            // font plain and compact so long government text fits naturally.
+            s.setFontSize(14f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.printText("Ministry of Blue Economy and Fisheries\n", null)
-            // Extra blank line reproduces the larger gap in the original receipt.
+
+            // Deliberate vertical gap between ministry name and Government Bill.
             s.printText("\n", null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("Government Bill\n", null)
-            s.printText("\n", null)
+            s.printText("\n\n", null)
+
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.setAlignment(0, null)
             printLine(s, "BillItem", billItem)
             s.printText("($currency)\n", null)
             s.printText("\n", null)
+
             printLine(s, "Payer name", payerName)
             printLine(s, "Payer phone", payerPhone)
-            printLine(s, "Amount", amount)
+            printLine(s, "Amount", "$currency $amount")
             printLine(s, "Pay option", paymentOption)
             printLine(s, "Expire Date", compactExpiry(expiryDate))
+
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
+
             s.printText(
                 "\nLipa kupitia Benki (NMB/BOT/PBZ) na\n" +
                 "Mawakala wake au Mitandao ya Simu\n" +
                 "(kwa kuchagua \"Malipo ya Serikali\")\n" +
-                "Piga namba 0777350786 kwa maelezo Zaidi.\n",
+                "Piga namba 0777350786 kwa maelezo Zaidi.\n\n",
                 null
             )
+
             printLine(s, "POS center", posCenter)
             printLine(s, "Printed on", printedOn)
             printLine(s, "Printed By", printedBy)
@@ -112,7 +121,7 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-            s.setFontSize(16f, null)
+            s.setFontSize(14f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("WAZI POS\n", null)

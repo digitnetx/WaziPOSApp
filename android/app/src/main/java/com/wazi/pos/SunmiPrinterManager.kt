@@ -62,24 +62,22 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // The supplied original uses a clearly readable medium-size thermal font.
-            // 20 is intentionally larger than the previous 12 so the printed receipt
-            // fills the 58mm paper instead of looking tiny and faint.
-            s.setFontSize(20f, null)
+            // Medium readable size for the 58mm original receipt. 16f keeps the
+            // BillItem text on one line while remaining much clearer than 12f.
+            s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("Ministry of Blue Economy and Fisheries\n", null)
-
             s.printText("\n", null)
             s.printText("Government Bill\n", null)
             s.printText("\n", null)
 
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.setAlignment(0, null)
+
+            // Keep BillItem, currency and Payer name together with no blank lines.
             printLine(s, "BillItem", billItem)
             s.printText("($currency)\n", null)
-
-            s.printText("\n", null)
             printLine(s, "Payer name", payerName)
             printLine(s, "Payer phone", payerPhone)
             printLine(s, "Amount", "$currency $amount")
@@ -90,7 +88,7 @@ class SunmiPrinterManager(private val context: Context) {
             printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
-            s.printText("\n", null)
+            // No blank line between ControlNumber and the government payment instructions.
             s.printText(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                 "kuchagua \"Malipo ya Serikali\")\n" +
@@ -120,7 +118,7 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-            s.setFontSize(20f, null)
+            s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             s.printText("WAZI POS\n", null)

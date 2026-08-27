@@ -42,7 +42,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government-bill layout matched to the supplied original receipt. */
+    /** 58mm government-bill layout. Uses the printer's font-rendering API with a normal sans-serif typeface. */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -62,26 +62,23 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // Header: centered with a clear but compact gap before Government Bill.
+            // Use an explicit normal sans-serif typeface so the printer does not use
+            // a dotted/slashed-zero variant. The zero must look exactly like: 0.
             s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            s.printText("Ministry of Blue Economy and Fisheries\n", null)
-            s.printText("\n", null)
-            s.printText("Government Bill\n", null)
-            s.printText("\n", null)
+            printWithNormalFont(s, "Ministry of Blue Economy and Fisheries\n", 16f)
+            printWithNormalFont(s, "\n", 16f)
+            printWithNormalFont(s, "Government Bill\n", 16f)
+            printWithNormalFont(s, "\n", 16f)
 
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.setAlignment(0, null)
-
-            // Keep BillItem on one line while making it more readable than the old 10f font.
             s.setFontSize(14f, null)
+
             printLine(s, "BillItem", billItem)
-            // No blank line between BillItem, currency and Payer name.
             printLine(s, "", currencyLine(currency))
             printLine(s, "Payer name", payerName)
-
-            // Continue immediately with the remaining receipt details.
             printLine(s, "Payer phone", payerPhone)
             printLine(s, "Amount", "$currency $amount")
             printLine(s, "Pay option", paymentOption)
@@ -91,12 +88,12 @@ class SunmiPrinterManager(private val context: Context) {
             printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
-            // No blank line after ControlNumber: payment instructions begin on the next line.
-            s.printText(
+            printWithNormalFont(
+                s,
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                 "kuchagua \"Malipo ya Serikali\")\n" +
                 "Piga namba 0778782798 kwa maelezo zaidi.\n",
-                null
+                14f
             )
 
             printLine(s, "POS center", posCenter)
@@ -109,11 +106,16 @@ class SunmiPrinterManager(private val context: Context) {
 
     private fun currencyLine(currency: String): String = "($currency)"
 
+    /** Print using a normal sans-serif typeface; avoids special dotted/slashed zero glyphs. */
+    private fun printWithNormalFont(service: SunmiPrinterService, text: String, size: Float) {
+        service.printTextWithFont(text, "sans-serif", size, null)
+    }
+
     private fun printLine(service: SunmiPrinterService, label: String, value: String) {
         if (label.isEmpty()) {
-            service.printText("$value\n", null)
+            printWithNormalFont(service, "$value\n", 14f)
         } else {
-            service.printText("$label : $value\n", null)
+            printWithNormalFont(service, "$label : $value\n", 14f)
         }
     }
 
@@ -130,9 +132,9 @@ class SunmiPrinterManager(private val context: Context) {
             s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            s.printText("WAZI POS\n", null)
+            printWithNormalFont(s, "WAZI POS\n", 16f)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
-            s.printText("SUNMI V2S TEST PRINT\n\n", null)
+            printWithNormalFont(s, "SUNMI V2S TEST PRINT\n\n", 16f)
             s.lineWrap(2, null)
             true
         } catch (_: RemoteException) { false }

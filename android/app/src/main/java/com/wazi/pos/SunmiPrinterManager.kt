@@ -42,7 +42,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government-bill layout. Uses the printer's font-rendering API with a normal sans-serif typeface. */
+    /** 58mm government-bill receipt matched to the supplied reference photograph. */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -62,43 +62,45 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // Use an explicit normal sans-serif typeface so the printer does not use
-            // a dotted/slashed-zero variant. The zero must look exactly like: 0.
-            s.setFontSize(16f, null)
+            // Reference receipt uses a normal, non-monospace sans-serif appearance.
+            // Explicitly use the printer font API to keep 0 as a plain zero: 0000000000.
             s.setAlignment(1, null)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            printWithNormalFont(s, "Ministry of Blue Economy and Fisheries\n", 16f)
-            printWithNormalFont(s, "\n", 16f)
-            printWithNormalFont(s, "Government Bill\n", 16f)
-            printWithNormalFont(s, "\n", 16f)
-
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
+            printWithNormalFont(s, "Ministry of Blue Economy and Fisheries\n", 14f)
+            printWithNormalFont(s, "\n", 14f)
+
+            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
+            printWithNormalFont(s, "Government Bill\n", 17f)
+            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
+            printWithNormalFont(s, "\n", 14f)
+
             s.setAlignment(0, null)
-            s.setFontSize(14f, null)
 
-            printLine(s, "BillItem", billItem)
-            printLine(s, "", currencyLine(currency))
-            printLine(s, "Payer name", payerName)
-            printLine(s, "Payer phone", payerPhone)
-            printLine(s, "Amount", "$currency $amount")
-            printLine(s, "Pay option", paymentOption)
-            printLine(s, "Expire Date", compactExpiry(expiryDate))
+            // Keep all short fields on one physical line, matching the photograph.
+            printLine(s, "BillItem", billItem, 14f)
+            printLine(s, "", currencyLine(currency), 14f)
+            printLine(s, "Payer name", payerName, 14f)
+            printLine(s, "Payer phone", payerPhone, 14f)
+            printLine(s, "Amount", "$currency $amount", 14f)
+            printLine(s, "Pay option", paymentOption, 14f)
+            printLine(s, "Expire Date", compactExpiry(expiryDate), 14f)
 
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            printLine(s, "ControlNumber", controlNumber)
+            printLine(s, "ControlNumber", controlNumber, 14f)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
+            // Instructions start immediately after ControlNumber, with the same wrapping style.
             printWithNormalFont(
                 s,
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
-                "kuchagua \"Malipo ya Serikali\")\n" +
+                "chaguo la \"Malipo ya Serikali\")\n" +
                 "Piga namba 0778782798 kwa maelezo zaidi.\n",
                 14f
             )
 
-            printLine(s, "POS center", posCenter)
-            printLine(s, "Printed on", printedOn)
-            printLine(s, "Printed By", printedBy)
+            printLine(s, "POS center", posCenter, 14f)
+            printLine(s, "Printed on", printedOn, 14f)
+            printLine(s, "Printed By", printedBy, 14f)
             s.lineWrap(2, null)
             true
         } catch (_: RemoteException) { false }
@@ -106,16 +108,16 @@ class SunmiPrinterManager(private val context: Context) {
 
     private fun currencyLine(currency: String): String = "($currency)"
 
-    /** Print using a normal sans-serif typeface; avoids special dotted/slashed zero glyphs. */
+    /** Print with an ordinary sans-serif font to avoid dotted/slashed-zero glyphs. */
     private fun printWithNormalFont(service: SunmiPrinterService, text: String, size: Float) {
         service.printTextWithFont(text, "sans-serif", size, null)
     }
 
-    private fun printLine(service: SunmiPrinterService, label: String, value: String) {
+    private fun printLine(service: SunmiPrinterService, label: String, value: String, size: Float) {
         if (label.isEmpty()) {
-            printWithNormalFont(service, "$value\n", 14f)
+            printWithNormalFont(service, "$value\n", size)
         } else {
-            printWithNormalFont(service, "$label : $value\n", 14f)
+            printWithNormalFont(service, "$label : $value\n", size)
         }
     }
 
@@ -129,7 +131,6 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-            s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
             printWithNormalFont(s, "WAZI POS\n", 16f)

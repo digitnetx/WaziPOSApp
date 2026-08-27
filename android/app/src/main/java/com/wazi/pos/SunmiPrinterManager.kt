@@ -42,7 +42,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government-bill layout tuned to the supplied original receipt. */
+    /** 58mm government-bill layout matched to the supplied original receipt. */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -62,8 +62,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // Medium readable size for the 58mm original receipt. 16f keeps the
-            // BillItem text on one line while remaining much clearer than 12f.
+            // Main receipt text is intentionally large and readable on the 58mm paper.
             s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
@@ -75,8 +74,12 @@ class SunmiPrinterManager(private val context: Context) {
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.setAlignment(0, null)
 
-            // Keep BillItem, currency and Payer name together with no blank lines.
+            // This line is slightly condensed so the complete BillItem stays on ONE line.
+            s.setFontSize(12f, null)
             printLine(s, "BillItem", billItem)
+
+            // No blank lines between BillItem, currency and payer name.
+            s.setFontSize(16f, null)
             s.printText("($currency)\n", null)
             printLine(s, "Payer name", payerName)
             printLine(s, "Payer phone", payerPhone)
@@ -88,11 +91,11 @@ class SunmiPrinterManager(private val context: Context) {
             printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
-            // No blank line between ControlNumber and the government payment instructions.
+            // ControlNumber is immediately followed by the payment instructions: no blank line.
             s.printText(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                 "kuchagua \"Malipo ya Serikali\")\n" +
-                "Piga namba 0778782798 kwa maelezo zaidi.\n\n",
+                "Piga namba 0778782798 kwa maelezo zaidi.\n",
                 null
             )
 

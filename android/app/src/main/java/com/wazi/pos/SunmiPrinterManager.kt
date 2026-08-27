@@ -13,7 +13,6 @@ import com.sunmi.peripheral.printer.InnerPrinterCallback
 import com.sunmi.peripheral.printer.InnerPrinterException
 import com.sunmi.peripheral.printer.InnerPrinterManager
 import com.sunmi.peripheral.printer.SunmiPrinterService
-import com.sunmi.peripheral.printer.WoyouConsts
 
 class SunmiPrinterManager(private val context: Context) {
     @Volatile private var service: SunmiPrinterService? = null
@@ -51,12 +50,9 @@ class SunmiPrinterManager(private val context: Context) {
 
     /**
      * 58mm government-bill receipt.
-     *
-     * The receipt is rendered to a bitmap with Android's proportional sans-serif
-     * (Roboto) font before sending it to the Sunmi printer. This is intentional:
-     * the Sunmi text API uses the printer's built-in monospaced/vector glyphs on
-     * some firmware versions, which makes 0 look narrow like a typewriter zero.
-     * Android's normal sans-serif gives the requested plain rounded zero: 0.
+     * The complete receipt is rendered as a bitmap with Android's normal
+     * proportional sans-serif typeface. The OpenType `zero` feature is
+     * explicitly disabled so the glyph is the plain normal zero: 0.
      */
     fun printReceipt(
         businessName: String,
@@ -119,7 +115,6 @@ class SunmiPrinterManager(private val context: Context) {
         printedBy: String,
         currency: String
     ): Bitmap {
-        // 384 dots is the native printable width of a typical 58mm Sunmi printer.
         val width = 384
         val topBottom = 14
         val contentWidth = width - 28
@@ -147,7 +142,6 @@ class SunmiPrinterManager(private val context: Context) {
             ReceiptBlock("Printed By : $printedBy", 16f)
         )
 
-        // First calculate enough height for all wrapped lines.
         var requiredHeight = topBottom * 2
         val layouts = ArrayList<Pair<ReceiptBlock, StaticLayout>>()
         for (block in blocks) {
@@ -182,7 +176,10 @@ class SunmiPrinterManager(private val context: Context) {
         return TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.BLACK
             textSize = size
-            typeface = Typeface.create(Typeface.SANS_SERIF, if (bold) Typeface.BOLD else Typeface.NORMAL)
+            typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            // IMPORTANT: explicitly turn OFF the OpenType slashed-zero feature.
+            // `-zero` means use the normal plain zero glyph: 0
+            fontFeatureSettings = "-zero"
             isDither = true
         }
     }
@@ -207,12 +204,12 @@ class SunmiPrinterManager(private val context: Context) {
             val bitmap = Bitmap.createBitmap(384, 90, Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(android.graphics.Color.WHITE)
             val canvas = Canvas(bitmap)
-            val paint = textPaint(20f, true)
+            val paint = textPaint(24f, false)
             val text = "0000000000"
             val x = (384f - paint.measureText(text)) / 2f
-            canvas.drawText(text, x, 28f, paint)
+            canvas.drawText(text, x, 32f, paint)
             val normal = textPaint(16f, false)
-            canvas.drawText("WAZI POS - PLAIN ZERO TEST", 52f, 60f, normal)
+            canvas.drawText("WAZI POS - PLAIN ZERO TEST", 52f, 64f, normal)
             s.printBitmap(bitmap, null)
             s.lineWrap(2, null)
             bitmap.recycle()

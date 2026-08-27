@@ -62,7 +62,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // Main receipt text is intentionally large and readable on the 58mm paper.
+            // Header matches the original: centered with a clear gap before Government Bill.
             s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
@@ -74,11 +74,12 @@ class SunmiPrinterManager(private val context: Context) {
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.setAlignment(0, null)
 
-            // This line is slightly condensed so the complete BillItem stays on ONE line.
-            s.setFontSize(12f, null)
+            // The original keeps the complete BillItem on one line. Use a compact font only
+            // for this long line so the final character is not wrapped to a second line.
+            s.setFontSize(10f, null)
             printLine(s, "BillItem", billItem)
 
-            // No blank lines between BillItem, currency and payer name.
+            // No blank line between BillItem, currency and Payer name.
             s.setFontSize(16f, null)
             s.printText("($currency)\n", null)
             printLine(s, "Payer name", payerName)
@@ -91,7 +92,7 @@ class SunmiPrinterManager(private val context: Context) {
             printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
-            // ControlNumber is immediately followed by the payment instructions: no blank line.
+            // No blank line after ControlNumber. Payment instructions start immediately.
             s.printText(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                 "kuchagua \"Malipo ya Serikali\")\n" +

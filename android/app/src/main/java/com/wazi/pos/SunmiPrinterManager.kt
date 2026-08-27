@@ -1,7 +1,14 @@
 package com.wazi.pos
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.RemoteException
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import com.sunmi.peripheral.printer.InnerPrinterCallback
 import com.sunmi.peripheral.printer.InnerPrinterException
 import com.sunmi.peripheral.printer.InnerPrinterManager
@@ -42,7 +49,15 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government-bill receipt matched to the supplied reference photograph. */
+    /**
+     * 58mm government-bill receipt.
+     *
+     * The receipt is rendered to a bitmap with Android's proportional sans-serif
+     * (Roboto) font before sending it to the Sunmi printer. This is intentional:
+     * the Sunmi text API uses the printer's built-in monospaced/vector glyphs on
+     * some firmware versions, which makes 0 look narrow like a typewriter zero.
+     * Android's normal sans-serif gives the requested plain rounded zero: 0.
+     */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -61,64 +76,122 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-
-            // Reference receipt uses a normal, non-monospace sans-serif appearance.
-            // Explicitly use the printer font API to keep 0 as a plain zero: 0000000000.
-            s.setAlignment(1, null)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
-            printWithNormalFont(s, "Ministry of Blue Economy and Fisheries\n", 14f)
-            printWithNormalFont(s, "\n", 14f)
-
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            printWithNormalFont(s, "Government Bill\n", 17f)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
-            printWithNormalFont(s, "\n", 14f)
-
-            s.setAlignment(0, null)
-
-            // Keep all short fields on one physical line, matching the photograph.
-            printLine(s, "BillItem", billItem, 14f)
-            printLine(s, "", currencyLine(currency), 14f)
-            printLine(s, "Payer name", payerName, 14f)
-            printLine(s, "Payer phone", payerPhone, 14f)
-            printLine(s, "Amount", "$currency $amount", 14f)
-            printLine(s, "Pay option", paymentOption, 14f)
-            printLine(s, "Expire Date", compactExpiry(expiryDate), 14f)
-
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            printLine(s, "ControlNumber", controlNumber, 14f)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
-
-            // Instructions start immediately after ControlNumber, with the same wrapping style.
-            printWithNormalFont(
-                s,
-                "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
-                "chaguo la \"Malipo ya Serikali\")\n" +
-                "Piga namba 0778782798 kwa maelezo zaidi.\n",
-                14f
+            val bitmap = buildReceiptBitmap(
+                billItem = billItem,
+                payerName = payerName,
+                payerPhone = payerPhone,
+                amount = amount,
+                paymentOption = paymentOption,
+                expiryDate = compactExpiry(expiryDate),
+                controlNumber = controlNumber,
+                posCenter = posCenter,
+                printedOn = printedOn,
+                printedBy = printedBy,
+                currency = currency
             )
-
-            printLine(s, "POS center", posCenter, 14f)
-            printLine(s, "Printed on", printedOn, 14f)
-            printLine(s, "Printed By", printedBy, 14f)
+            s.printBitmap(bitmap, null)
             s.lineWrap(2, null)
+            bitmap.recycle()
             true
-        } catch (_: RemoteException) { false }
-    }
-
-    private fun currencyLine(currency: String): String = "($currency)"
-
-    /** Print with an ordinary sans-serif font to avoid dotted/slashed-zero glyphs. */
-    private fun printWithNormalFont(service: SunmiPrinterService, text: String, size: Float) {
-        service.printTextWithFont(text, "sans-serif", size, null)
-    }
-
-    private fun printLine(service: SunmiPrinterService, label: String, value: String, size: Float) {
-        if (label.isEmpty()) {
-            printWithNormalFont(service, "$value\n", size)
-        } else {
-            printWithNormalFont(service, "$label : $value\n", size)
+        } catch (_: Exception) {
+            false
         }
+    }
+
+    private data class ReceiptBlock(
+        val text: String,
+        val size: Float,
+        val bold: Boolean = false,
+        val center: Boolean = false,
+        val gapAfter: Int = 0
+    )
+
+    private fun buildReceiptBitmap(
+        billItem: String,
+        payerName: String,
+        payerPhone: String,
+        amount: String,
+        paymentOption: String,
+        expiryDate: String,
+        controlNumber: String,
+        posCenter: String,
+        printedOn: String,
+        printedBy: String,
+        currency: String
+    ): Bitmap {
+        // 384 dots is the native printable width of a typical 58mm Sunmi printer.
+        val width = 384
+        val topBottom = 14
+        val contentWidth = width - 28
+
+        val blocks = listOf(
+            ReceiptBlock("Ministry of Blue Economy and Fisheries", 16f, center = true, gapAfter = 22),
+            ReceiptBlock("Government Bill", 18f, bold = true, center = true, gapAfter = 24),
+            ReceiptBlock("BillItem : $billItem", 16f, gapAfter = 2),
+            ReceiptBlock("($currency)", 16f, gapAfter = 2),
+            ReceiptBlock("Payer name : $payerName", 16f, gapAfter = 2),
+            ReceiptBlock("Payer phone : $payerPhone", 16f, gapAfter = 2),
+            ReceiptBlock("Amount : $currency $amount", 16f, gapAfter = 2),
+            ReceiptBlock("Pay option : $paymentOption", 16f, gapAfter = 2),
+            ReceiptBlock("Expire Date : $expiryDate", 16f, gapAfter = 2),
+            ReceiptBlock("ControlNumber : $controlNumber", 16f, bold = true, gapAfter = 10),
+            ReceiptBlock(
+                "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
+                    "kuchagua \"Malipo ya Serikali\")\n" +
+                    "Piga namba 0778782798 kwa maelezo zaidi.",
+                16f,
+                gapAfter = 28
+            ),
+            ReceiptBlock("POS center : $posCenter", 16f, gapAfter = 2),
+            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 16f, gapAfter = 2),
+            ReceiptBlock("Printed By : $printedBy", 16f)
+        )
+
+        // First calculate enough height for all wrapped lines.
+        var requiredHeight = topBottom * 2
+        val layouts = ArrayList<Pair<ReceiptBlock, StaticLayout>>()
+        for (block in blocks) {
+            val paint = textPaint(block.size, block.bold)
+            val layout = StaticLayout.Builder
+                .obtain(block.text, 0, block.text.length, paint, contentWidth)
+                .setAlignment(if (block.center) Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
+                .setIncludePad(false)
+                .setLineSpacing(0f, 1.0f)
+                .build()
+            layouts += block to layout
+            requiredHeight += layout.height + block.gapAfter
+        }
+
+        val bitmap = Bitmap.createBitmap(width, requiredHeight, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(android.graphics.Color.WHITE)
+        val canvas = Canvas(bitmap)
+        var y = topBottom.toFloat()
+
+        for ((block, layout) in layouts) {
+            canvas.save()
+            canvas.translate(14f, y)
+            layout.draw(canvas)
+            canvas.restore()
+            y += layout.height + block.gapAfter
+        }
+
+        return bitmap
+    }
+
+    private fun textPaint(size: Float, bold: Boolean): TextPaint {
+        return TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+            color = android.graphics.Color.BLACK
+            textSize = size
+            typeface = Typeface.create(Typeface.SANS_SERIF, if (bold) Typeface.BOLD else Typeface.NORMAL)
+            isDither = true
+        }
+    }
+
+    private fun formatPrintedOn(value: String): String {
+        val trimmed = value.trim()
+        if (trimmed.contains('T')) return trimmed
+        val parts = trimmed.split(Regex("\\s+"))
+        return if (parts.size >= 2) "${parts[0]}T${parts[1]}" else trimmed
     }
 
     private fun compactExpiry(value: String): String {
@@ -131,13 +204,19 @@ class SunmiPrinterManager(private val context: Context) {
         val s = service ?: return false
         return try {
             s.printerInit(null)
-            s.setAlignment(1, null)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
-            printWithNormalFont(s, "WAZI POS\n", 16f)
-            s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
-            printWithNormalFont(s, "SUNMI V2S TEST PRINT\n\n", 16f)
+            val bitmap = Bitmap.createBitmap(384, 90, Bitmap.Config.ARGB_8888)
+            bitmap.eraseColor(android.graphics.Color.WHITE)
+            val canvas = Canvas(bitmap)
+            val paint = textPaint(20f, true)
+            val text = "0000000000"
+            val x = (384f - paint.measureText(text)) / 2f
+            canvas.drawText(text, x, 28f, paint)
+            val normal = textPaint(16f, false)
+            canvas.drawText("WAZI POS - PLAIN ZERO TEST", 52f, 60f, normal)
+            s.printBitmap(bitmap, null)
             s.lineWrap(2, null)
+            bitmap.recycle()
             true
-        } catch (_: RemoteException) { false }
+        } catch (_: Exception) { false }
     }
 }

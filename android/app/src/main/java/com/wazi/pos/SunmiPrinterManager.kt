@@ -62,7 +62,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try {
             s.printerInit(null)
 
-            // Header matches the original: centered with a clear gap before Government Bill.
+            // Header: centered with a clear but compact gap before Government Bill.
             s.setFontSize(16f, null)
             s.setAlignment(1, null)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.ENABLE)
@@ -74,15 +74,14 @@ class SunmiPrinterManager(private val context: Context) {
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
             s.setAlignment(0, null)
 
-            // The original keeps the complete BillItem on one line. Use a compact font only
-            // for this long line so the final character is not wrapped to a second line.
-            s.setFontSize(10f, null)
+            // Keep BillItem on one line while making it more readable than the old 10f font.
+            s.setFontSize(14f, null)
             printLine(s, "BillItem", billItem)
-
             // No blank line between BillItem, currency and Payer name.
-            s.setFontSize(16f, null)
-            s.printText("($currency)\n", null)
+            printLine(s, "", currencyLine(currency))
             printLine(s, "Payer name", payerName)
+
+            // Continue immediately with the remaining receipt details.
             printLine(s, "Payer phone", payerPhone)
             printLine(s, "Amount", "$currency $amount")
             printLine(s, "Pay option", paymentOption)
@@ -92,7 +91,7 @@ class SunmiPrinterManager(private val context: Context) {
             printLine(s, "ControlNumber", controlNumber)
             s.setPrinterStyle(WoyouConsts.ENABLE_BOLD, WoyouConsts.DISABLE)
 
-            // No blank line after ControlNumber. Payment instructions start immediately.
+            // No blank line after ControlNumber: payment instructions begin on the next line.
             s.printText(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                 "kuchagua \"Malipo ya Serikali\")\n" +
@@ -108,8 +107,14 @@ class SunmiPrinterManager(private val context: Context) {
         } catch (_: RemoteException) { false }
     }
 
+    private fun currencyLine(currency: String): String = "($currency)"
+
     private fun printLine(service: SunmiPrinterService, label: String, value: String) {
-        service.printText("$label : $value\n", null)
+        if (label.isEmpty()) {
+            service.printText("$value\n", null)
+        } else {
+            service.printText("$label : $value\n", null)
+        }
     }
 
     private fun compactExpiry(value: String): String {

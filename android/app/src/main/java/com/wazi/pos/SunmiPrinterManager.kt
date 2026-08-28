@@ -84,7 +84,8 @@ class SunmiPrinterManager(private val context: Context) {
         val size: Float = 20f,
         val bold: Boolean = false,
         val center: Boolean = false,
-        val gapAfter: Int = 0
+        val gapAfter: Int = 0,
+        val condensed: Boolean = false
     )
 
     private fun buildReceiptBitmap(
@@ -104,12 +105,13 @@ class SunmiPrinterManager(private val context: Context) {
         val side = 30
         val contentWidth = width - (side * 2)
 
-        // Font size is intentionally matched to the original physical government hardcopy.
+        // Keep the physical hardcopy typography and spacing. The two long header lines
+        // use the condensed face so they remain on ONE line at the current receipt size.
         // Footer fields intentionally have NO blank line between them.
         val blocks = listOf(
-            ReceiptBlock("Ministry of Blue Economy and Fisheries", 20f, bold = true, center = true, gapAfter = 27),
+            ReceiptBlock("Ministry of Blue Economy and Fisheries", 20f, bold = true, center = true, gapAfter = 27, condensed = true),
             ReceiptBlock("Government Bill", 22f, bold = true, center = true, gapAfter = 39),
-            ReceiptBlock("BillItem : $billItem", 20f, gapAfter = 6),
+            ReceiptBlock("BillItem : $billItem", 20f, gapAfter = 6, condensed = true),
             ReceiptBlock("($currency)", 20f, gapAfter = 7),
             ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 7),
             ReceiptBlock("Payer phone : $payerPhone", 20f, gapAfter = 7),
@@ -133,7 +135,7 @@ class SunmiPrinterManager(private val context: Context) {
         val layouts = ArrayList<Pair<ReceiptBlock, StaticLayout>>()
         for (block in blocks) {
             val layout = StaticLayout.Builder
-                .obtain(block.text, 0, block.text.length, textPaint(block.size, block.bold), contentWidth)
+                .obtain(block.text, 0, block.text.length, textPaint(block.size, block.bold, block.condensed), contentWidth)
                 .setAlignment(if (block.center) Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
                 .setIncludePad(false)
                 .setLineSpacing(0f, 1.0f)
@@ -157,11 +159,12 @@ class SunmiPrinterManager(private val context: Context) {
         return bitmap
     }
 
-    private fun textPaint(size: Float, bold: Boolean): TextPaint {
+    private fun textPaint(size: Float, bold: Boolean, condensed: Boolean = false): TextPaint {
         return TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.BLACK
             textSize = size
-            typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            val family = if (condensed) "sans-serif-condensed" else "sans-serif"
+            typeface = Typeface.create(family, if (bold) Typeface.BOLD else Typeface.NORMAL)
             // Force the ordinary plain zero: 0 — no dot and no slash.
             fontFeatureSettings = "-zero"
             fontVariationSettings = "'wght' ${if (bold) 700 else 400}"

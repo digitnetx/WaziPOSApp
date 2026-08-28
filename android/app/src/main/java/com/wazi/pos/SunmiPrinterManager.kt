@@ -48,7 +48,7 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government receipt rendered as a bitmap to control font/glyphs. */
+    /** 58mm government receipt rendered as a bitmap to reproduce the supplied hardcopy. */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -100,14 +100,12 @@ class SunmiPrinterManager(private val context: Context) {
         printedBy: String,
         currency: String
     ): Bitmap {
-        // Native 58mm Sunmi width.
         val width = 384
         val side = 30
         val contentWidth = width - (side * 2)
 
-        // Spacing is deliberately based on the supplied reference receipt:
-        // large white space below the header, tight transaction rows,
-        // large gap before the payment instructions, then footer.
+        // Layout follows the original physical government receipt.
+        // Footer fields intentionally have NO blank line between them.
         val blocks = listOf(
             ReceiptBlock("Ministry of Blue Economy and Fisheries", 16f, bold = true, center = true, gapAfter = 27),
             ReceiptBlock("Government Bill", 18f, bold = true, center = true, gapAfter = 39),
@@ -118,15 +116,16 @@ class SunmiPrinterManager(private val context: Context) {
             ReceiptBlock("Amount : $currency $amount", 16f, gapAfter = 7),
             ReceiptBlock("Pay option : $paymentOption", 16f, gapAfter = 7),
             ReceiptBlock("Expire Date : $expiryDate", 16f, gapAfter = 7),
-            ReceiptBlock("ControlNumber : $controlNumber", 16f, gapAfter = 48),
+            ReceiptBlock("ControlNumber : $controlNumber", 16f, gapAfter = 20),
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
                     "Piga namba 0778782798 kwa maelezo zaidi.",
-                16f, gapAfter = 59
+                16f,
+                gapAfter = 10
             ),
-            ReceiptBlock("POS center : $posCenter", 16f, gapAfter = 7),
-            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 16f, gapAfter = 7),
+            ReceiptBlock("POS center : $posCenter", 16f, gapAfter = 0),
+            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 16f, gapAfter = 0),
             ReceiptBlock("Printed By : $printedBy", 16f)
         )
 
@@ -162,9 +161,8 @@ class SunmiPrinterManager(private val context: Context) {
         return TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.BLACK
             textSize = size
-            // Roboto sans-serif has the plain oval zero requested in the reference.
-            // Explicitly disable the OpenType slashed-zero feature.
             typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            // Force the ordinary plain zero: 0 — no dot and no slash.
             fontFeatureSettings = "-zero"
             fontVariationSettings = "'wght' ${if (bold) 700 else 400}"
             isDither = true

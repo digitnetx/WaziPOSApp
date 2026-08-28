@@ -81,7 +81,7 @@ class SunmiPrinterManager(private val context: Context) {
 
     private data class ReceiptBlock(
         val text: String,
-        val size: Float = 16f,
+        val size: Float = 20f,
         val bold: Boolean = false,
         val center: Boolean = false,
         val gapAfter: Int = 0
@@ -104,29 +104,29 @@ class SunmiPrinterManager(private val context: Context) {
         val side = 30
         val contentWidth = width - (side * 2)
 
-        // Layout follows the original physical government receipt.
+        // Font size is intentionally matched to the original physical government hardcopy.
         // Footer fields intentionally have NO blank line between them.
         val blocks = listOf(
-            ReceiptBlock("Ministry of Blue Economy and Fisheries", 16f, bold = true, center = true, gapAfter = 27),
-            ReceiptBlock("Government Bill", 18f, bold = true, center = true, gapAfter = 39),
-            ReceiptBlock("BillItem : $billItem", 16f, gapAfter = 6),
-            ReceiptBlock("($currency)", 16f, gapAfter = 7),
-            ReceiptBlock("Payer name : $payerName", 16f, gapAfter = 7),
-            ReceiptBlock("Payer phone : $payerPhone", 16f, gapAfter = 7),
-            ReceiptBlock("Amount : $currency $amount", 16f, gapAfter = 7),
-            ReceiptBlock("Pay option : $paymentOption", 16f, gapAfter = 7),
-            ReceiptBlock("Expire Date : $expiryDate", 16f, gapAfter = 7),
-            ReceiptBlock("ControlNumber : $controlNumber", 16f, gapAfter = 20),
+            ReceiptBlock("Ministry of Blue Economy and Fisheries", 20f, bold = true, center = true, gapAfter = 27),
+            ReceiptBlock("Government Bill", 22f, bold = true, center = true, gapAfter = 39),
+            ReceiptBlock("BillItem : $billItem", 20f, gapAfter = 6),
+            ReceiptBlock("($currency)", 20f, gapAfter = 7),
+            ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 7),
+            ReceiptBlock("Payer phone : $payerPhone", 20f, gapAfter = 7),
+            ReceiptBlock("Amount : $currency $amount", 20f, gapAfter = 7),
+            ReceiptBlock("Pay option : $paymentOption", 20f, gapAfter = 7),
+            ReceiptBlock("Expire Date : $expiryDate", 20f, gapAfter = 7),
+            ReceiptBlock("ControlNumber : $controlNumber", 20f, gapAfter = 20),
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
                     "Piga namba 0778782798 kwa maelezo zaidi.",
-                16f,
+                20f,
                 gapAfter = 10
             ),
-            ReceiptBlock("POS center : $posCenter", 16f, gapAfter = 0),
-            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 16f, gapAfter = 0),
-            ReceiptBlock("Printed By : $printedBy", 16f)
+            ReceiptBlock("POS center : $posCenter", 20f, gapAfter = 0),
+            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 20f, gapAfter = 0),
+            ReceiptBlock("Printed By : $printedBy", 20f)
         )
 
         var requiredHeight = 14 * 2

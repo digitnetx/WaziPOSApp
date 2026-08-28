@@ -48,7 +48,6 @@ class SunmiPrinterManager(private val context: Context) {
         return try { s.updatePrinterState() } catch (_: RemoteException) { 505 }
     }
 
-    /** 58mm government receipt rendered as a bitmap to reproduce the supplied hardcopy. */
     fun printReceipt(
         businessName: String,
         receiptNumber: String,
@@ -101,16 +100,16 @@ class SunmiPrinterManager(private val context: Context) {
         printedBy: String,
         currency: String
     ): Bitmap {
+        // Final 58mm layout based directly on the final reference receipt.
         val width = 384
         val side = 30
         val contentWidth = width - (side * 2)
 
-        // Keep the physical hardcopy typography and spacing. The two long header lines
-        // use the condensed face so they remain on ONE line at the current receipt size.
-        // Footer fields intentionally have NO blank line between them.
         val blocks = listOf(
+            // Must stay on ONE line.
             ReceiptBlock("Ministry of Blue Economy and Fisheries", 20f, bold = true, center = true, gapAfter = 27, condensed = true),
             ReceiptBlock("Government Bill", 22f, bold = true, center = true, gapAfter = 39),
+            // Must stay on ONE line.
             ReceiptBlock("BillItem : $billItem", 20f, gapAfter = 6, condensed = true),
             ReceiptBlock("($currency)", 20f, gapAfter = 7),
             ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 7),
@@ -126,6 +125,7 @@ class SunmiPrinterManager(private val context: Context) {
                 20f,
                 gapAfter = 10
             ),
+            // Footer must flow continuously: POS center -> Printed on -> Printed By.
             ReceiptBlock("POS center : $posCenter", 20f, gapAfter = 0),
             ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 20f, gapAfter = 0),
             ReceiptBlock("Printed By : $printedBy", 20f)
@@ -165,7 +165,7 @@ class SunmiPrinterManager(private val context: Context) {
             textSize = size
             val family = if (condensed) "sans-serif-condensed" else "sans-serif"
             typeface = Typeface.create(family, if (bold) Typeface.BOLD else Typeface.NORMAL)
-            // Force the ordinary plain zero: 0 — no dot and no slash.
+            // Always use the ordinary plain zero: 0.
             fontFeatureSettings = "-zero"
             fontVariationSettings = "'wght' ${if (bold) 700 else 400}"
             isDither = true

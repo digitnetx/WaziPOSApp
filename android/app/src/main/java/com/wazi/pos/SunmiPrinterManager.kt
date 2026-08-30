@@ -80,7 +80,7 @@ class SunmiPrinterManager(private val context: Context) {
 
     private data class ReceiptBlock(
         val text: String,
-        val size: Float = 18f,
+        val size: Float,
         val bold: Boolean = false,
         val center: Boolean = false,
         val gapAfter: Int = 0,
@@ -101,23 +101,30 @@ class SunmiPrinterManager(private val context: Context) {
         printedBy: String,
         currency: String
     ): Bitmap {
+        // 58mm SUNMI V2S receipt width.
         val width = 384
         val side = 12
         val contentWidth = width - (side * 2)
 
+        // Match the supplied original: simple black thermal text, centered headings,
+        // tight body spacing, immediate payment instructions, then a visible footer gap.
         val blocks = listOf(
-            // Exact reference header: one line, centered.
             ReceiptBlock(
                 "Ministry of Blue Economy and Fisheries",
                 18f,
-                bold = true,
+                bold = false,
                 center = true,
                 gapAfter = 20,
                 condensed = true,
                 noWrap = true
             ),
-            ReceiptBlock("Government Bill", 20f, bold = true, center = true, gapAfter = 18),
-            // Exact reference body: BillItem remains one line.
+            ReceiptBlock(
+                "Government Bill",
+                20f,
+                bold = true,
+                center = true,
+                gapAfter = 18
+            ),
             ReceiptBlock(
                 "BillItem : $billItem",
                 16f,
@@ -132,7 +139,6 @@ class SunmiPrinterManager(private val context: Context) {
             ReceiptBlock("Pay option : $paymentOption", 18f, gapAfter = 0),
             ReceiptBlock("Expire Date : $expiryDate", 18f, gapAfter = 0),
             ReceiptBlock("ControlNumber : $controlNumber", 18f, bold = true, gapAfter = 0),
-            // No blank line after ControlNumber.
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
@@ -140,7 +146,6 @@ class SunmiPrinterManager(private val context: Context) {
                 18f,
                 gapAfter = 28
             ),
-            // Clear separation before footer, matching the reference.
             ReceiptBlock("POS center : $posCenter", 18f, gapAfter = 0),
             ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 18f, gapAfter = 0),
             ReceiptBlock("Printed By : $printedBy", 18f)
@@ -152,7 +157,8 @@ class SunmiPrinterManager(private val context: Context) {
             val paint = textPaint(block.size, block.bold, block.condensed)
             val measuredWidth = paint.measureText(block.text)
             if (block.noWrap && measuredWidth > contentWidth) {
-                paint.textScaleX = (contentWidth.toFloat() / measuredWidth).coerceAtLeast(0.68f)
+                // Compress only horizontally for the two long lines so they remain exactly one line.
+                paint.textScaleX = (contentWidth.toFloat() / measuredWidth).coerceIn(0.70f, 1f)
             }
             val layout = StaticLayout.Builder
                 .obtain(block.text, 0, block.text.length, paint, contentWidth)
@@ -167,7 +173,8 @@ class SunmiPrinterManager(private val context: Context) {
         val bitmap = Bitmap.createBitmap(width, requiredHeight, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(android.graphics.Color.WHITE)
         val canvas = Canvas(bitmap)
-        var y = 9f
+        var y = 10f
+
         for ((block, layout) in layouts) {
             val x = if (block.center) ((width - layout.width) / 2f).coerceAtLeast(0f) else side.toFloat()
             canvas.save()
@@ -183,8 +190,7 @@ class SunmiPrinterManager(private val context: Context) {
         return TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.BLACK
             textSize = size
-            val family = if (condensed) "sans-serif-condensed" else "sans-serif"
-            typeface = Typeface.create(family, if (bold) Typeface.BOLD else Typeface.NORMAL)
+            typeface = Typeface.create(if (condensed) "sans-serif-condensed" else "sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
             fontFeatureSettings = "-zero"
             isDither = true
         }

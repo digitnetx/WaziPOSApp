@@ -101,67 +101,53 @@ class SunmiPrinterManager(private val context: Context) {
         printedBy: String,
         currency: String
     ): Bitmap {
-        // 58mm SUNMI V2S receipt width.
+        // Match the original receipt's overall physical length by changing text size only.
         val width = 384
         val side = 12
         val contentWidth = width - (side * 2)
 
-        // Match the supplied original: simple black thermal text, centered headings,
-        // tight body spacing, immediate payment instructions, then a visible footer gap.
         val blocks = listOf(
             ReceiptBlock(
                 "Ministry of Blue Economy and Fisheries",
-                18f,
+                22f,
                 bold = false,
                 center = true,
-                gapAfter = 20,
+                gapAfter = 22,
                 condensed = true,
                 noWrap = true
             ),
-            ReceiptBlock(
-                "Government Bill",
-                20f,
-                bold = true,
-                center = true,
-                gapAfter = 18
-            ),
-            ReceiptBlock(
-                "BillItem : $billItem",
-                16f,
-                gapAfter = 0,
-                condensed = true,
-                noWrap = true
-            ),
-            ReceiptBlock("($currency)", 18f, gapAfter = 0),
-            ReceiptBlock("Payer name : $payerName", 18f, gapAfter = 0),
-            ReceiptBlock("Payer phone : $payerPhone", 18f, gapAfter = 0),
-            ReceiptBlock("Amount : $currency $amount", 18f, gapAfter = 0),
-            ReceiptBlock("Pay option : $paymentOption", 18f, gapAfter = 0),
-            ReceiptBlock("Expire Date : $expiryDate", 18f, gapAfter = 0),
-            ReceiptBlock("ControlNumber : $controlNumber", 18f, bold = true, gapAfter = 0),
+            ReceiptBlock("Government Bill", 24f, bold = true, center = true, gapAfter = 20),
+            ReceiptBlock("BillItem : $billItem", 20f, gapAfter = 0, condensed = true, noWrap = true),
+            ReceiptBlock("($currency)", 20f, gapAfter = 0),
+            ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 0),
+            ReceiptBlock("Payer phone : $payerPhone", 20f, gapAfter = 0),
+            ReceiptBlock("Amount : $currency $amount", 20f, gapAfter = 0),
+            ReceiptBlock("Pay option : $paymentOption", 20f, gapAfter = 0),
+            ReceiptBlock("Expire Date : $expiryDate", 20f, gapAfter = 0),
+            ReceiptBlock("ControlNumber : $controlNumber", 20f, bold = true, gapAfter = 0),
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
                     "Piga namba 0778782798 kwa maelezo zaidi.",
-                18f,
-                gapAfter = 28
+                20f,
+                gapAfter = 36
             ),
-            ReceiptBlock("POS center : $posCenter", 18f, gapAfter = 0),
-            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 18f, gapAfter = 0),
-            ReceiptBlock("Printed By : $printedBy", 18f)
+            ReceiptBlock("POS center : $posCenter", 20f, gapAfter = 0),
+            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 20f, gapAfter = 0),
+            ReceiptBlock("Printed By : $printedBy", 20f)
         )
 
         var requiredHeight = 18
         val layouts = ArrayList<Pair<ReceiptBlock, StaticLayout>>()
         for (block in blocks) {
             val paint = textPaint(block.size, block.bold, block.condensed)
-            val measuredWidth = paint.measureText(block.text)
-            if (block.noWrap && measuredWidth > contentWidth) {
-                // Compress only horizontally for the two long lines so they remain exactly one line.
-                paint.textScaleX = (contentWidth.toFloat() / measuredWidth).coerceIn(0.70f, 1f)
+            val layoutWidth = if (block.noWrap) {
+                maxOf(contentWidth, kotlin.math.ceil(paint.measureText(block.text)).toInt() + 2)
+            } else {
+                contentWidth
             }
             val layout = StaticLayout.Builder
-                .obtain(block.text, 0, block.text.length, paint, contentWidth)
+                .obtain(block.text, 0, block.text.length, paint, layoutWidth)
                 .setAlignment(if (block.center) Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
                 .setIncludePad(false)
                 .setLineSpacing(0f, 1.0f)
@@ -173,8 +159,7 @@ class SunmiPrinterManager(private val context: Context) {
         val bitmap = Bitmap.createBitmap(width, requiredHeight, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(android.graphics.Color.WHITE)
         val canvas = Canvas(bitmap)
-        var y = 10f
-
+        var y = 9f
         for ((block, layout) in layouts) {
             val x = if (block.center) ((width - layout.width) / 2f).coerceAtLeast(0f) else side.toFloat()
             canvas.save()
@@ -190,7 +175,8 @@ class SunmiPrinterManager(private val context: Context) {
         return TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.BLACK
             textSize = size
-            typeface = Typeface.create(if (condensed) "sans-serif-condensed" else "sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            val family = if (condensed) "sans-serif-condensed" else "sans-serif"
+            typeface = Typeface.create(family, if (bold) Typeface.BOLD else Typeface.NORMAL)
             fontFeatureSettings = "-zero"
             isDither = true
         }

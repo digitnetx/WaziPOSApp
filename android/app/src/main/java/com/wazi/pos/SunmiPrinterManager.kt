@@ -106,6 +106,7 @@ class SunmiPrinterManager(private val context: Context) {
         val contentWidth = width - (side * 2)
 
         val blocks = listOf(
+            // Exact reference header: one line, centered.
             ReceiptBlock(
                 "Ministry of Blue Economy and Fisheries",
                 18f,
@@ -115,7 +116,8 @@ class SunmiPrinterManager(private val context: Context) {
                 condensed = true,
                 noWrap = true
             ),
-            ReceiptBlock("Government Bill", 19f, bold = true, center = true, gapAfter = 20),
+            ReceiptBlock("Government Bill", 20f, bold = true, center = true, gapAfter = 18),
+            // Exact reference body: BillItem remains one line.
             ReceiptBlock(
                 "BillItem : $billItem",
                 16f,
@@ -130,6 +132,7 @@ class SunmiPrinterManager(private val context: Context) {
             ReceiptBlock("Pay option : $paymentOption", 18f, gapAfter = 0),
             ReceiptBlock("Expire Date : $expiryDate", 18f, gapAfter = 0),
             ReceiptBlock("ControlNumber : $controlNumber", 18f, bold = true, gapAfter = 0),
+            // No blank line after ControlNumber.
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
@@ -137,6 +140,7 @@ class SunmiPrinterManager(private val context: Context) {
                 18f,
                 gapAfter = 28
             ),
+            // Clear separation before footer, matching the reference.
             ReceiptBlock("POS center : $posCenter", 18f, gapAfter = 0),
             ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 18f, gapAfter = 0),
             ReceiptBlock("Printed By : $printedBy", 18f)
@@ -148,9 +152,7 @@ class SunmiPrinterManager(private val context: Context) {
             val paint = textPaint(block.size, block.bold, block.condensed)
             val measuredWidth = paint.measureText(block.text)
             if (block.noWrap && measuredWidth > contentWidth) {
-                // Horizontally condense only the long original-style lines so they
-                // remain on ONE physical receipt line instead of wrapping/clipping.
-                paint.textScaleX = (contentWidth.toFloat() / measuredWidth).coerceIn(0.72f, 1f)
+                paint.textScaleX = (contentWidth.toFloat() / measuredWidth).coerceAtLeast(0.68f)
             }
             val layout = StaticLayout.Builder
                 .obtain(block.text, 0, block.text.length, paint, contentWidth)

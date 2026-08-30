@@ -84,7 +84,8 @@ class SunmiPrinterManager(private val context: Context) {
         val bold: Boolean = false,
         val center: Boolean = false,
         val gapAfter: Int = 0,
-        val condensed: Boolean = false
+        val condensed: Boolean = false,
+        val noWrap: Boolean = false
     )
 
     private fun buildReceiptBitmap(
@@ -100,42 +101,69 @@ class SunmiPrinterManager(private val context: Context) {
         printedBy: String,
         currency: String
     ): Bitmap {
-        // Final 58mm layout based directly on the final reference receipt.
         val width = 384
-        val side = 30
+        val side = 14
         val contentWidth = width - (side * 2)
 
         val blocks = listOf(
-            // Must stay on ONE line.
-            ReceiptBlock("Ministry of Blue Economy and Fisheries", 20f, bold = true, center = true, gapAfter = 27, condensed = true),
-            ReceiptBlock("Government Bill", 22f, bold = true, center = true, gapAfter = 39),
-            // Must stay on ONE line.
-            ReceiptBlock("BillItem : $billItem", 20f, gapAfter = 6, condensed = true),
-            ReceiptBlock("($currency)", 20f, gapAfter = 7),
-            ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 7),
-            ReceiptBlock("Payer phone : $payerPhone", 20f, gapAfter = 7),
-            ReceiptBlock("Amount : $currency $amount", 20f, gapAfter = 7),
-            ReceiptBlock("Pay option : $paymentOption", 20f, gapAfter = 7),
-            ReceiptBlock("Expire Date : $expiryDate", 20f, gapAfter = 7),
-            ReceiptBlock("ControlNumber : $controlNumber", 20f, gapAfter = 20),
+            // Keep the complete ministry name on one line, like the original.
+            ReceiptBlock(
+                "Ministry of Blue Economy and Fisheries",
+                17f,
+                bold = true,
+                center = true,
+                gapAfter = 20,
+                condensed = true,
+                noWrap = true
+            ),
+            ReceiptBlock(
+                "Government Bill",
+                19f,
+                bold = true,
+                center = true,
+                gapAfter = 20
+            ),
+            // Keep the complete BillItem on one line.
+            ReceiptBlock(
+                "BillItem : $billItem",
+                14f,
+                gapAfter = 0,
+                condensed = true,
+                noWrap = true
+            ),
+            // No vertical gap between BillItem, currency and payer name.
+            ReceiptBlock("($currency)", 20f, gapAfter = 0),
+            ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 0),
+            ReceiptBlock("Payer phone : $payerPhone", 20f, gapAfter = 0),
+            ReceiptBlock("Amount : $currency $amount", 20f, gapAfter = 0),
+            ReceiptBlock("Pay option : $paymentOption", 20f, gapAfter = 0),
+            ReceiptBlock("Expire Date : $expiryDate", 20f, gapAfter = 0),
+            // No gap after ControlNumber: payment instructions start immediately.
+            ReceiptBlock("ControlNumber : $controlNumber", 20f, bold = true, gapAfter = 0),
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
                     "Piga namba 0778782798 kwa maelezo zaidi.",
                 20f,
-                gapAfter = 10
+                gapAfter = 30
             ),
-            // Footer must flow continuously: POS center -> Printed on -> Printed By.
+            // Add a clear gap between payment instructions and footer, matching the original.
             ReceiptBlock("POS center : $posCenter", 20f, gapAfter = 0),
             ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 20f, gapAfter = 0),
             ReceiptBlock("Printed By : $printedBy", 20f)
         )
 
-        var requiredHeight = 14 * 2
+        var requiredHeight = 20
         val layouts = ArrayList<Pair<ReceiptBlock, StaticLayout>>()
         for (block in blocks) {
+            val paint = textPaint(block.size, block.bold, block.condensed)
+            val layoutWidth = if (block.noWrap) {
+                maxOf(contentWidth, kotlin.math.ceil(paint.measureText(block.text)).toInt() + 2)
+            } else {
+                contentWidth
+            }
             val layout = StaticLayout.Builder
-                .obtain(block.text, 0, block.text.length, textPaint(block.size, block.bold, block.condensed), contentWidth)
+                .obtain(block.text, 0, block.text.length, paint, layoutWidth)
                 .setAlignment(if (block.center) Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
                 .setIncludePad(false)
                 .setLineSpacing(0f, 1.0f)
@@ -147,11 +175,17 @@ class SunmiPrinterManager(private val context: Context) {
         val bitmap = Bitmap.createBitmap(width, requiredHeight, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(android.graphics.Color.WHITE)
         val canvas = Canvas(bitmap)
-        var y = 14f
+        var y = 10f
 
         for ((block, layout) in layouts) {
+            val drawWidth = layout.width
+            val x = when {
+                block.center -> ((width - drawWidth) / 2f).coerceAtLeast(0f)
+                block.noWrap && drawWidth > contentWidth -> side.toFloat()
+                else -> side.toFloat()
+            }
             canvas.save()
-            canvas.translate(side.toFloat(), y)
+            canvas.translate(x, y)
             layout.draw(canvas)
             canvas.restore()
             y += layout.height + block.gapAfter
@@ -165,9 +199,7 @@ class SunmiPrinterManager(private val context: Context) {
             textSize = size
             val family = if (condensed) "sans-serif-condensed" else "sans-serif"
             typeface = Typeface.create(family, if (bold) Typeface.BOLD else Typeface.NORMAL)
-            // Always use the ordinary plain zero: 0.
             fontFeatureSettings = "-zero"
-            fontVariationSettings = "'wght' ${if (bold) 700 else 400}"
             isDither = true
         }
     }

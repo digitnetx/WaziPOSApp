@@ -106,24 +106,16 @@ class SunmiPrinterManager(private val context: Context) {
         val contentWidth = width - (side * 2)
 
         val blocks = listOf(
-            // Keep the complete ministry name on one line, like the original.
             ReceiptBlock(
                 "Ministry of Blue Economy and Fisheries",
                 17f,
                 bold = true,
                 center = true,
-                gapAfter = 20,
+                gapAfter = 16,
                 condensed = true,
                 noWrap = true
             ),
-            ReceiptBlock(
-                "Government Bill",
-                19f,
-                bold = true,
-                center = true,
-                gapAfter = 20
-            ),
-            // Keep the complete BillItem on one line.
+            ReceiptBlock("Government Bill", 19f, bold = true, center = true, gapAfter = 12),
             ReceiptBlock(
                 "BillItem : $billItem",
                 14f,
@@ -131,23 +123,20 @@ class SunmiPrinterManager(private val context: Context) {
                 condensed = true,
                 noWrap = true
             ),
-            // No vertical gap between BillItem, currency and payer name.
             ReceiptBlock("($currency)", 20f, gapAfter = 0),
             ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 0),
             ReceiptBlock("Payer phone : $payerPhone", 20f, gapAfter = 0),
             ReceiptBlock("Amount : $currency $amount", 20f, gapAfter = 0),
             ReceiptBlock("Pay option : $paymentOption", 20f, gapAfter = 0),
             ReceiptBlock("Expire Date : $expiryDate", 20f, gapAfter = 0),
-            // No gap after ControlNumber: payment instructions start immediately.
             ReceiptBlock("ControlNumber : $controlNumber", 20f, bold = true, gapAfter = 0),
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
                     "Piga namba 0778782798 kwa maelezo zaidi.",
                 20f,
-                gapAfter = 30
+                gapAfter = 28
             ),
-            // Add a clear gap between payment instructions and footer, matching the original.
             ReceiptBlock("POS center : $posCenter", 20f, gapAfter = 0),
             ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 20f, gapAfter = 0),
             ReceiptBlock("Printed By : $printedBy", 20f)
@@ -159,9 +148,7 @@ class SunmiPrinterManager(private val context: Context) {
             val paint = textPaint(block.size, block.bold, block.condensed)
             val layoutWidth = if (block.noWrap) {
                 maxOf(contentWidth, kotlin.math.ceil(paint.measureText(block.text)).toInt() + 2)
-            } else {
-                contentWidth
-            }
+            } else contentWidth
             val layout = StaticLayout.Builder
                 .obtain(block.text, 0, block.text.length, paint, layoutWidth)
                 .setAlignment(if (block.center) Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
@@ -176,14 +163,9 @@ class SunmiPrinterManager(private val context: Context) {
         bitmap.eraseColor(android.graphics.Color.WHITE)
         val canvas = Canvas(bitmap)
         var y = 10f
-
         for ((block, layout) in layouts) {
             val drawWidth = layout.width
-            val x = when {
-                block.center -> ((width - drawWidth) / 2f).coerceAtLeast(0f)
-                block.noWrap && drawWidth > contentWidth -> side.toFloat()
-                else -> side.toFloat()
-            }
+            val x = if (block.center) ((width - drawWidth) / 2f).coerceAtLeast(0f) else side.toFloat()
             canvas.save()
             canvas.translate(x, y)
             layout.draw(canvas)

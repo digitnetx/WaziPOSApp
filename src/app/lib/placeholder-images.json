@@ -1,0 +1,11 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-pos",
+      "description": "Professional mobile POS system",
+      "imageUrl": "https://picsum.photos/seed/pos/800/600",
+      "imageHint": "mobile point of sale"
+    }
+  ]
+}

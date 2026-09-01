@@ -1,0 +1,25 @@
+'use client';
+
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { firebaseConfig } from './config';
+import { useMemo } from 'react';
+
+export function initializeFirebase() {
+  const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  const firestore = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
+
+  return { firebaseApp, firestore, auth };
+}
+
+export { FirebaseProvider, useFirebase, useFirebaseApp, useFirestore, useAuth } from './provider';
+export { FirebaseClientProvider } from './client-provider';
+export { useCollection } from './firestore/use-collection';
+export { useDoc } from './firestore/use-doc';
+export { useUser } from './auth/use-user';
+
+export function useMemoFirebase<T>(factory: () => T, deps: any[]): T {
+  return useMemo(factory, deps);
+}

@@ -106,43 +106,37 @@ class SunmiPrinterManager(private val context: Context) {
         val side = 12
         val contentWidth = width - (side * 2)
 
-        // Preserve the approved receipt design; only make a small uniform increase in text size
-        // and line spacing so the physical print is slightly larger without changing the layout.
+        // Preserve the approved near-final design exactly; only use the slightly increased
+        // text/spacing values from the successful baseline.
         val blocks = listOf(
             ReceiptBlock(
                 "Ministry of Blue Economy and Fisheries",
-                23f,
+                22f,
                 bold = false,
                 center = true,
-                gapAfter = 23,
+                gapAfter = 22,
                 condensed = true,
                 noWrap = true
             ),
-            ReceiptBlock(
-                "Government Bill",
-                21f,
-                bold = true,
-                center = true,
-                gapAfter = 20
-            ),
-            ReceiptBlock("BillItem : $billItem", 17f, gapAfter = 1, condensed = true, noWrap = true),
-            ReceiptBlock("($currency)", 19f, gapAfter = 1),
-            ReceiptBlock("Payer name : $payerName", 19f, gapAfter = 1),
-            ReceiptBlock("Payer phone : $payerPhone", 19f, gapAfter = 1),
-            ReceiptBlock("Amount : $currency $amount", 19f, gapAfter = 1),
-            ReceiptBlock("Pay option : $paymentOption", 19f, gapAfter = 1),
-            ReceiptBlock("Expire Date : $expiryDate", 19f, gapAfter = 1),
-            ReceiptBlock("ControlNumber : $controlNumber", 19f, bold = true, gapAfter = 0),
+            ReceiptBlock("Government Bill", 24f, bold = true, center = true, gapAfter = 20),
+            ReceiptBlock("BillItem : $billItem", 20f, gapAfter = 0, condensed = true, noWrap = true),
+            ReceiptBlock("($currency)", 20f, gapAfter = 0),
+            ReceiptBlock("Payer name : $payerName", 20f, gapAfter = 0),
+            ReceiptBlock("Payer phone : $payerPhone", 20f, gapAfter = 0),
+            ReceiptBlock("Amount : $currency $amount", 20f, gapAfter = 0),
+            ReceiptBlock("Pay option : $paymentOption", 20f, gapAfter = 0),
+            ReceiptBlock("Expire Date : $expiryDate", 20f, gapAfter = 0),
+            ReceiptBlock("ControlNumber : $controlNumber", 20f, bold = true, gapAfter = 0),
             ReceiptBlock(
                 "Lipa kupitia Benki (NMB/BOT/PBZ) na Mawakala wake au Mitandao ya Simu (kwa\n" +
                     "kuchagua \"Malipo ya Serikali\")\n" +
                     "Piga namba 0778782798 kwa maelezo zaidi.",
-                19f,
+                20f,
                 gapAfter = 36
             ),
-            ReceiptBlock("POS center : $posCenter", 19f, gapAfter = 1),
-            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 19f, gapAfter = 1),
-            ReceiptBlock("Printed By : $printedBy", 19f)
+            ReceiptBlock("POS center : $posCenter", 20f, gapAfter = 0),
+            ReceiptBlock("Printed on : ${formatPrintedOn(printedOn)}", 20f, gapAfter = 0),
+            ReceiptBlock("Printed By : $printedBy", 20f)
         )
 
         var requiredHeight = 18
@@ -157,7 +151,7 @@ class SunmiPrinterManager(private val context: Context) {
                 .obtain(block.text, 0, block.text.length, paint, contentWidth)
                 .setAlignment(if (block.center) Layout.Alignment.ALIGN_CENTER else Layout.Alignment.ALIGN_NORMAL)
                 .setIncludePad(false)
-                .setLineSpacing(1f, 1.02f)
+                .setLineSpacing(0f, 1.0f)
                 .build()
             layouts += block to layout
             requiredHeight += layout.height + block.gapAfter
@@ -167,7 +161,6 @@ class SunmiPrinterManager(private val context: Context) {
         bitmap.eraseColor(android.graphics.Color.WHITE)
         val canvas = Canvas(bitmap)
         var y = 9f
-
         for ((block, layout) in layouts) {
             val x = if (block.center) ((width - layout.width) / 2f).coerceAtLeast(0f) else side.toFloat()
             canvas.save()
@@ -183,7 +176,8 @@ class SunmiPrinterManager(private val context: Context) {
         return TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.BLACK
             textSize = size
-            typeface = Typeface.create(if (condensed) "sans-serif-condensed" else "sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            val family = if (condensed) "sans-serif-condensed" else "sans-serif"
+            typeface = Typeface.create(family, if (bold) Typeface.BOLD else Typeface.NORMAL)
             fontFeatureSettings = "-zero"
             isDither = true
         }
